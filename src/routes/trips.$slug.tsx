@@ -1,7 +1,7 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { SiteNav } from "@/components/site-nav";
 import { SiteFooter } from "@/components/site-footer";
-import { getTrip, trips } from "@/lib/trips";
+import { getTrip, trips, type Trip } from "@/lib/trips";
 
 export const Route = createFileRoute("/trips/$slug")({
   component: TripDetail,
@@ -31,7 +31,7 @@ export const Route = createFileRoute("/trips/$slug")({
 });
 
 function TripDetail() {
-  const { trip } = Route.useLoaderData();
+  const { trip } = Route.useLoaderData() as { trip: Trip };
   const sold = trip.spotsLeft === 0;
   const related = trips.filter((t) => t.slug !== trip.slug).slice(0, 3);
 
