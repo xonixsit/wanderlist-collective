@@ -1,6 +1,8 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
+import { useAuth } from "@/lib/use-auth";
+import { supabase } from "@/integrations/supabase/client";
 
-const links = [
+const baseLinks = [
   { to: "/", label: "Home" },
   { to: "/trips", label: "Expeditions" },
   { to: "/planner", label: "AI Planner" },
@@ -9,6 +11,16 @@ const links = [
 ] as const;
 
 export function SiteNav() {
+  const { user, isAdmin, loading } = useAuth();
+  const navigate = useNavigate();
+
+  const links = isAdmin ? [...baseLinks, { to: "/admin", label: "Admin" } as const] : baseLinks;
+
+  const signOut = async () => {
+    await supabase.auth.signOut();
+    navigate({ to: "/" });
+  };
+
   return (
     <nav className="sticky top-0 z-50 border-b border-border bg-background/70 backdrop-blur-xl">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
@@ -32,19 +44,40 @@ export function SiteNav() {
         </div>
 
         <div className="flex items-center gap-4">
-          <div className="hidden items-center gap-2 rounded-full bg-surface px-3 py-1.5 ring-1 ring-border sm:flex">
-            <div className="size-1.5 animate-pulse rounded-full bg-accent shadow-[0_0_8px_currentColor]" />
-            <span className="font-mono text-xs tabular-nums">
-              1,240 <span className="text-muted-foreground">CR</span>
-            </span>
-          </div>
-          <div className="flex items-center gap-3 border-l border-border pl-4">
-            <div className="hidden text-right sm:block">
-              <div className="text-xs font-medium leading-tight">Julian V.</div>
-              <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Pathfinder</div>
+          {user && (
+            <div className="hidden items-center gap-2 rounded-full bg-surface px-3 py-1.5 ring-1 ring-border sm:flex">
+              <div className="size-1.5 animate-pulse rounded-full bg-accent shadow-[0_0_8px_currentColor]" />
+              <span className="font-mono text-xs tabular-nums">
+                1,240 <span className="text-muted-foreground">CR</span>
+              </span>
             </div>
-            <div className="size-9 rounded-full bg-gradient-to-br from-surface-elevated to-surface ring-1 ring-border" />
-          </div>
+          )}
+          {loading ? null : user ? (
+            <div className="flex items-center gap-3 border-l border-border pl-4">
+              <div className="hidden text-right sm:block">
+                <div className="text-xs font-medium leading-tight">
+                  {user.email?.split("@")[0]}
+                </div>
+                <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                  {isAdmin ? "Admin" : "Pathfinder"}
+                </div>
+              </div>
+              <div className="size-9 rounded-full bg-gradient-to-br from-surface-elevated to-surface ring-1 ring-border" />
+              <button
+                onClick={signOut}
+                className="text-xs font-medium text-muted-foreground hover:text-foreground"
+              >
+                Sign out
+              </button>
+            </div>
+          ) : (
+            <Link
+              to="/auth"
+              className="rounded-full bg-accent px-4 py-1.5 text-sm font-semibold text-accent-foreground hover:bg-accent/90"
+            >
+              Sign in
+            </Link>
+          )}
         </div>
       </div>
     </nav>

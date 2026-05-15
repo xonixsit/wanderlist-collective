@@ -1,7 +1,9 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useEffect } from "react";
 import { SiteNav } from "@/components/site-nav";
 import { SiteFooter } from "@/components/site-footer";
 import { trips } from "@/lib/trips";
+import { useAuth } from "@/lib/use-auth";
 
 export const Route = createFileRoute("/profile")({
   component: Profile,
@@ -24,6 +26,22 @@ const past = trips.slice(0, 3);
 const upcoming = trips.slice(3, 5);
 
 function Profile() {
+  const { loading, user } = useAuth();
+  const navigate = useNavigate();
+  useEffect(() => {
+    if (!loading && !user) navigate({ to: "/auth" });
+  }, [loading, user, navigate]);
+
+  if (loading || !user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-muted-foreground">
+        Loading…
+      </div>
+    );
+  }
+
+  const name = user.user_metadata?.display_name || user.email?.split("@")[0] || "Explorer";
+
   return (
     <div className="min-h-screen">
       <SiteNav />
@@ -33,8 +51,8 @@ function Profile() {
           <div className="size-28 rounded-full bg-gradient-to-br from-accent/40 via-surface-elevated to-surface ring-1 ring-border" />
           <div className="flex-1 space-y-2">
             <div className="text-xs font-medium uppercase tracking-[0.2em] text-accent">Pathfinder · Nomad tier</div>
-            <h1 className="font-serif text-5xl">Julian Vega</h1>
-            <p className="text-muted-foreground">Lisbon, Portugal · Member since 2024</p>
+            <h1 className="font-serif text-5xl">{name}</h1>
+            <p className="text-muted-foreground">{user.email} · Member since {new Date(user.created_at).getFullYear()}</p>
           </div>
           <button className="rounded-full bg-surface px-5 py-2.5 text-sm ring-1 ring-border hover:bg-surface-elevated">
             Edit profile
