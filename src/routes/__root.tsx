@@ -9,7 +9,6 @@ import {
 } from "@tanstack/react-router";
 
 import appCss from "../styles.css?url";
-import { Toaster } from "@/components/ui/sonner";
 
 function NotFoundComponent() {
   return (
@@ -76,11 +75,15 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { title: "Vaga — A travel community for the modern explorer" },
       { name: "description", content: "Premium curated group expeditions, AI-planned itineraries, and a rewards program for explorers." },
       { name: "author", content: "Vaga Collective" },
-      { property: "og:title", content: "Vaga — Travel community for explorers" },
-      { property: "og:description", content: "Curated group trips, AI itineraries, and rewards." },
+      { property: "og:title", content: "Vaga — A travel community for the modern explorer" },
+      { property: "og:description", content: "Premium curated group expeditions, AI-planned itineraries, and a rewards program for explorers." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:title", content: "Vaga — A travel community for the modern explorer" },
+      { name: "twitter:description", content: "Premium curated group expeditions, AI-planned itineraries, and a rewards program for explorers." },
+      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/d118e72c-a4da-46ca-9952-d80268c43e6e" },
+      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/d118e72c-a4da-46ca-9952-d80268c43e6e" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
@@ -118,7 +121,6 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <Outlet />
-      <Toaster richColors position="top-center" />
     </QueryClientProvider>
   );
 }
