@@ -1,9 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { SiteNav } from "@/components/site-nav";
 import { SiteFooter } from "@/components/site-footer";
 import { TripCard } from "@/components/trip-card";
-import { trips, categories } from "@/lib/trips";
+import { fetchTrips, categories, type Trip } from "@/lib/trips";
 
 export const Route = createFileRoute("/trips/")({
   component: TripsPage,
@@ -17,6 +17,14 @@ export const Route = createFileRoute("/trips/")({
 
 function TripsPage() {
   const [active, setActive] = useState<string>("All");
+  const [trips, setTrips] = useState<Trip[]>([]);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    fetchTrips()
+      .then(setTrips)
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, []);
   const filtered = active === "All" ? trips : trips.filter((t) => t.category === active);
 
   return (
@@ -47,11 +55,15 @@ function TripsPage() {
           ))}
         </div>
 
-        <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
-          {filtered.map((t) => (
-            <TripCard key={t.slug} trip={t} />
-          ))}
-        </div>
+        {loading ? (
+          <div className="py-20 text-center text-muted-foreground">Loading expeditions…</div>
+        ) : (
+          <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
+            {filtered.map((t) => (
+              <TripCard key={t.slug} trip={t} />
+            ))}
+          </div>
+        )}
       </main>
       <SiteFooter />
     </div>
