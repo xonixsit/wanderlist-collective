@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { SiteNav } from "@/components/site-nav";
 import { SiteFooter } from "@/components/site-footer";
-import { trips } from "@/lib/trips";
+import { fetchTrips, type Trip } from "@/lib/trips";
 import { useAuth } from "@/lib/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -15,13 +15,6 @@ export const Route = createFileRoute("/admin")({
     ],
   }),
 });
-
-const kpis = [
-  { k: "Active trips", v: trips.length.toString() },
-  { k: "Members", v: "1,284" },
-  { k: "Bookings (mo)", v: "212" },
-  { k: "Revenue (mo)", v: "$648k" },
-];
 
 type RoleRow = { user_id: string; role: "admin" | "user"; created_at: string };
 
