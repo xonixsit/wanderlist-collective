@@ -1,8 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { SiteNav } from "@/components/site-nav";
 import { SiteFooter } from "@/components/site-footer";
 import { TripCard } from "@/components/trip-card";
-import { trips, categories } from "@/lib/trips";
+import { fetchTrips, categories, type Trip } from "@/lib/trips";
 import heroImg from "@/assets/hero-iceland.jpg";
 
 export const Route = createFileRoute("/")({
@@ -16,7 +17,12 @@ export const Route = createFileRoute("/")({
 });
 
 function Home() {
-  const trending = trips.find((t) => t.status === "trending") ?? trips[0];
+  const [trips, setTrips] = useState<Trip[]>([]);
+  useEffect(() => {
+    fetchTrips().then(setTrips).catch(console.error);
+  }, []);
+
+  const trending = trips.find((t) => t.trending) ?? trips[0];
   const featured = trips.slice(0, 6);
 
   return (
@@ -41,7 +47,9 @@ function Home() {
                   <span className="rounded-full bg-accent px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-accent-foreground">
                     Trending now
                   </span>
-                  <span className="text-xs font-medium text-muted-foreground">{trending.dates}, 2026</span>
+                  {trending && (
+                    <span className="text-xs font-medium text-muted-foreground">{trending.dates}, 2026</span>
+                  )}
                 </div>
                 <h1 className="text-balance font-serif text-5xl leading-[1.05] md:text-7xl">
                   Travel is <em className="text-accent">better</em> together.
@@ -50,13 +58,15 @@ function Home() {
                   A members-led community designing curated small-group expeditions, AI-personalized routes, and rewards for every mile traveled.
                 </p>
                 <div className="flex flex-wrap gap-3 pt-3">
-                  <Link
-                    to="/trips/$slug"
-                    params={{ slug: trending.slug }}
-                    className="inline-flex items-center gap-2 rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-accent-foreground transition-transform hover:scale-[1.02] animate-[pulse-glow_3s_ease-in-out_infinite]"
-                  >
-                    Reserve your spot
-                  </Link>
+                  {trending && (
+                    <Link
+                      to="/trips/$slug"
+                      params={{ slug: trending.slug }}
+                      className="inline-flex items-center gap-2 rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-accent-foreground transition-transform hover:scale-[1.02] animate-[pulse-glow_3s_ease-in-out_infinite]"
+                    >
+                      Reserve your spot
+                    </Link>
+                  )}
                   <Link
                     to="/planner"
                     className="inline-flex items-center gap-2 rounded-full border border-border bg-surface/60 px-5 py-2.5 text-sm font-medium backdrop-blur transition-colors hover:bg-surface-elevated"
@@ -137,9 +147,9 @@ function Home() {
             </div>
             <div className="flex shrink-0 items-center gap-6">
               <div className="text-center">
-                <div className="font-mono text-3xl font-semibold tabular-nums text-accent">18.4k</div>
+                <div className="font-mono text-3xl font-semibold tabular-nums text-accent">10%</div>
                 <div className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-                  miles this month
+                  back per trip
                 </div>
               </div>
               <div className="h-12 w-px bg-border" />

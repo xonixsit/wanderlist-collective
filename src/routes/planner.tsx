@@ -1,7 +1,11 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
+import { toast } from "sonner";
 import { SiteNav } from "@/components/site-nav";
 import { SiteFooter } from "@/components/site-footer";
+import { useAuth } from "@/lib/use-auth";
+import { generateItinerary, type PlannerResult } from "@/lib/planner.functions";
 
 export const Route = createFileRoute("/planner")({
   component: Planner,
@@ -20,33 +24,29 @@ const samples = [
   "10-day desert immersion with photography focus",
 ];
 
-type Plan = { title: string; days: { day: number; title: string; detail: string }[] };
-
-function fakeGenerate(prompt: string): Plan {
-  const seed = prompt.trim() || "A mindful 5-day journey";
-  return {
-    title: `Itinerary for: ${seed.slice(0, 60)}${seed.length > 60 ? "…" : ""}`,
-    days: [
-      { day: 1, title: "Arrival & grounding", detail: "Settle into a boutique stay, light walking tour, welcome dinner curated by your local host." },
-      { day: 2, title: "Cultural immersion", detail: "Morning workshop with a local artisan; afternoon at a hidden gallery; evening rooftop cocktails." },
-      { day: 3, title: "Outdoor expedition", detail: "Guided trail or coastal route with packed picnic, returning for sunset." },
-      { day: 4, title: "Wellness & reflection", detail: "Spa or onsen morning, gentle walk, journaling session, communal dinner." },
-      { day: 5, title: "Closing ritual", detail: "Final breakfast, optional excursion, transfer to onward travel." },
-    ],
-  };
-}
-
 function Planner() {
+  const { user, loading: authLoading } = useAuth();
+  const navigate = useNavigate();
+  const generate = useServerFn(generateItinerary);
   const [prompt, setPrompt] = useState("");
-  const [plan, setPlan] = useState<Plan | null>(null);
+  const [plan, setPlan] = useState<PlannerResult | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const generate = (text: string) => {
+  const run = async (text: string) => {
+    if (!user) {
+      navigate({ to: "/auth" });
+      return;
+    }
+    if (!text.trim()) return;
     setLoading(true);
-    setTimeout(() => {
-      setPlan(fakeGenerate(text));
+    try {
+      const result = await generate({ data: { prompt: text } });
+      setPlan(result);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Couldn't generate itinerary");
+    } finally {
       setLoading(false);
-    }, 800);
+    }
   };
 
   return (
@@ -56,7 +56,7 @@ function Planner() {
         <div className="space-y-6 text-center animate-[reveal_0.6s_ease-out_both]">
           <div className="inline-flex items-center gap-2 rounded-full bg-accent/10 px-4 py-1.5 text-xs font-medium uppercase tracking-widest text-accent">
             <span className="size-1.5 animate-pulse rounded-full bg-accent" />
-            AI route engine · beta
+            AI route engine
           </div>
           <h1 className="font-serif text-5xl md:text-6xl">Where should your next story begin?</h1>
           <p className="mx-auto max-w-2xl text-muted-foreground">
@@ -67,7 +67,7 @@ function Planner() {
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            generate(prompt);
+            run(prompt);
           }}
           className="mt-12"
         >
@@ -81,10 +81,10 @@ function Planner() {
             />
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || authLoading}
               className="absolute bottom-4 right-4 rounded-full bg-accent px-5 py-2 text-xs font-bold uppercase tracking-wider text-accent-foreground disabled:opacity-50"
             >
-              {loading ? "Drafting…" : "Generate"}
+              {loading ? "Drafting…" : user ? "Generate" : "Sign in"}
             </button>
           </div>
 
@@ -95,7 +95,7 @@ function Planner() {
                 type="button"
                 onClick={() => {
                   setPrompt(s);
-                  generate(s);
+                  run(s);
                 }}
                 className="rounded-full bg-surface/40 px-3 py-1.5 text-[11px] text-muted-foreground ring-1 ring-border hover:bg-surface-elevated hover:text-foreground"
               >
@@ -107,9 +107,10 @@ function Planner() {
 
         {plan && (
           <section className="mt-16 animate-[reveal_0.5s_ease-out_both] space-y-6 rounded-2xl bg-surface p-8 ring-1 ring-border">
-            <header>
+            <header className="space-y-2">
               <div className="text-xs font-medium uppercase tracking-widest text-accent">Generated itinerary</div>
-              <h2 className="mt-2 font-serif text-3xl">{plan.title}</h2>
+              <h2 className="font-serif text-3xl">{plan.title}</h2>
+              {plan.summary && <p className="text-sm text-muted-foreground">{plan.summary}</p>}
             </header>
             <ol className="relative space-y-6 border-l border-border pl-8">
               {plan.days.map((d) => (
@@ -122,14 +123,6 @@ function Planner() {
                 </li>
               ))}
             </ol>
-            <div className="flex gap-3 border-t border-border pt-6">
-              <button className="rounded-full bg-accent px-5 py-2 text-sm font-semibold text-accent-foreground">
-                Save itinerary
-              </button>
-              <button className="rounded-full bg-surface-elevated px-5 py-2 text-sm font-medium ring-1 ring-border">
-                Share with collective
-              </button>
-            </div>
           </section>
         )}
       </main>

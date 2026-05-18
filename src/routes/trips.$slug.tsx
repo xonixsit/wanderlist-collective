@@ -1,45 +1,86 @@
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { SiteNav } from "@/components/site-nav";
 import { SiteFooter } from "@/components/site-footer";
-import { getTrip, trips, type Trip } from "@/lib/trips";
+import { fetchTripBySlug, fetchTrips, bookTrip, type Trip } from "@/lib/trips";
+import { useAuth } from "@/lib/use-auth";
 
 export const Route = createFileRoute("/trips/$slug")({
   component: TripDetail,
-  loader: ({ params }) => {
-    const trip = getTrip(params.slug);
-    if (!trip) throw notFound();
-    return { trip };
-  },
-  head: ({ loaderData }) => ({
-    meta: loaderData
-      ? [
-          { title: `${loaderData.trip.title} — Vaga` },
-          { name: "description", content: loaderData.trip.description },
-          { property: "og:image", content: loaderData.trip.image },
-        ]
-      : [{ title: "Trip — Vaga" }],
+  head: ({ params }) => ({
+    meta: [
+      { title: `${params.slug.replace(/-/g, " ")} — Vaga` },
+    ],
   }),
-  notFoundComponent: () => (
-    <div className="min-h-screen">
-      <SiteNav />
-      <div className="mx-auto max-w-3xl px-6 py-32 text-center">
-        <h1 className="font-serif text-4xl">Trip not found</h1>
-        <Link to="/trips" className="mt-6 inline-block text-accent">← All expeditions</Link>
-      </div>
-    </div>
-  ),
 });
 
 function TripDetail() {
-  const { trip } = Route.useLoaderData() as { trip: Trip };
+  const { slug } = Route.useParams();
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const [trip, setTrip] = useState<Trip | null>(null);
+  const [related, setRelated] = useState<Trip[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [booking, setBooking] = useState(false);
+
+  useEffect(() => {
+    setLoading(true);
+    Promise.all([fetchTripBySlug(slug), fetchTrips()])
+      .then(([t, all]) => {
+        setTrip(t);
+        setRelated(all.filter((x) => x.slug !== slug).slice(0, 3));
+      })
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, [slug]);
+
+  const handleBook = async () => {
+    if (!user) {
+      navigate({ to: "/auth" });
+      return;
+    }
+    if (!trip) return;
+    setBooking(true);
+    try {
+      await bookTrip(trip.id, 1);
+      toast.success("Spot reserved! Credits added to your wallet.");
+      const fresh = await fetchTripBySlug(slug);
+      setTrip(fresh);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Booking failed");
+    } finally {
+      setBooking(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen">
+        <SiteNav />
+        <div className="mx-auto max-w-3xl px-6 py-32 text-center text-muted-foreground">Loading…</div>
+      </div>
+    );
+  }
+
+  if (!trip) {
+    return (
+      <div className="min-h-screen">
+        <SiteNav />
+        <div className="mx-auto max-w-3xl px-6 py-32 text-center">
+          <h1 className="font-serif text-4xl">Trip not found</h1>
+          <Link to="/trips" className="mt-6 inline-block text-accent">← All expeditions</Link>
+        </div>
+      </div>
+    );
+  }
+
   const sold = trip.spotsLeft === 0;
-  const related = trips.filter((t) => t.slug !== trip.slug).slice(0, 3);
 
   return (
     <div className="min-h-screen">
       <SiteNav />
 
-      {/* Hero image */}
       <div className="relative">
         <img
           src={trip.image}
@@ -63,7 +104,6 @@ function TripDetail() {
       </div>
 
       <main className="mx-auto grid max-w-7xl gap-12 px-6 py-16 lg:grid-cols-[1fr_360px]">
-        {/* Left: content */}
         <div className="space-y-16">
           <section>
             <p className="text-pretty text-lg leading-relaxed text-foreground/90">{trip.description}</p>
@@ -97,7 +137,6 @@ function TripDetail() {
           </section>
         </div>
 
-        {/* Right: booking card */}
         <aside className="lg:sticky lg:top-24 lg:self-start">
           <div className="space-y-5 rounded-2xl bg-surface p-6 ring-1 ring-border">
             <div className="flex items-baseline justify-between">
@@ -112,6 +151,7 @@ function TripDetail() {
               <Row k="Dates" v={trip.dates} />
               <Row k="Group size" v={`${trip.totalSpots} explorers`} />
               <Row k="Spots left" v={`${trip.spotsLeft} of ${trip.totalSpots}`} />
+              <Row k="Earn" v={`+${Math.round((trip.price / 10)).toLocaleString()} CR`} />
             </div>
 
             <div className="flex -space-x-2">
@@ -130,19 +170,19 @@ function TripDetail() {
             </div>
 
             <button
-              disabled={sold}
+              onClick={handleBook}
+              disabled={sold || booking}
               className="w-full rounded-full bg-accent px-5 py-3 text-sm font-semibold text-accent-foreground transition-transform hover:scale-[1.02] disabled:cursor-not-allowed disabled:bg-surface-elevated disabled:text-muted-foreground"
             >
-              {sold ? "Sold out" : "Reserve your spot"}
+              {sold ? "Sold out" : booking ? "Reserving…" : user ? "Reserve your spot" : "Sign in to reserve"}
             </button>
             <p className="text-center text-[11px] text-muted-foreground">
-              Secure payment via Stripe · Free cancellation up to 30 days
+              Secure payment · Free cancellation up to 30 days
             </p>
           </div>
         </aside>
       </main>
 
-      {/* Related */}
       <section className="mx-auto max-w-7xl px-6 pb-16">
         <h2 className="mb-8 font-serif text-3xl">More expeditions</h2>
         <div className="grid grid-cols-1 gap-8 md:grid-cols-3">

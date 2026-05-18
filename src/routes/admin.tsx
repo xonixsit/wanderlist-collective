@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { SiteNav } from "@/components/site-nav";
 import { SiteFooter } from "@/components/site-footer";
-import { trips } from "@/lib/trips";
+import { fetchTrips, type Trip } from "@/lib/trips";
 import { useAuth } from "@/lib/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -16,13 +16,6 @@ export const Route = createFileRoute("/admin")({
   }),
 });
 
-const kpis = [
-  { k: "Active trips", v: trips.length.toString() },
-  { k: "Members", v: "1,284" },
-  { k: "Bookings (mo)", v: "212" },
-  { k: "Revenue (mo)", v: "$648k" },
-];
-
 type RoleRow = { user_id: string; role: "admin" | "user"; created_at: string };
 
 function Admin() {
@@ -32,6 +25,30 @@ function Admin() {
     { id: string; display_name: string | null; created_at: string; roles: string[] }[]
   >([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
+  const [trips, setTrips] = useState<Trip[]>([]);
+  const [bookingsCount, setBookingsCount] = useState(0);
+  const [revenue, setRevenue] = useState(0);
+
+  useEffect(() => {
+    fetchTrips().then(setTrips).catch(console.error);
+  }, []);
+
+  useEffect(() => {
+    if (!isAdmin) return;
+    (async () => {
+      const { data } = await supabase.from("bookings").select("total_paid");
+      const list = data ?? [];
+      setBookingsCount(list.length);
+      setRevenue(list.reduce((s, r) => s + (r.total_paid ?? 0), 0));
+    })();
+  }, [isAdmin]);
+
+  const kpis = [
+    { k: "Active trips", v: trips.length.toString() },
+    { k: "Members", v: users.length.toString() },
+    { k: "Bookings", v: bookingsCount.toString() },
+    { k: "Revenue", v: `$${revenue.toLocaleString()}` },
+  ];
 
   useEffect(() => {
     if (loading) return;

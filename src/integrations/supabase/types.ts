@@ -14,6 +14,79 @@ export type Database = {
   }
   public: {
     Tables: {
+      bookings: {
+        Row: {
+          created_at: string
+          id: string
+          spots: number
+          status: string
+          total_paid: number
+          trip_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          spots?: number
+          status?: string
+          total_paid?: number
+          trip_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          spots?: number
+          status?: string
+          total_paid?: number
+          trip_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bookings_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      credits_ledger: {
+        Row: {
+          amount: number
+          booking_id: string | null
+          created_at: string
+          id: string
+          reason: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          booking_id?: string | null
+          created_at?: string
+          id?: string
+          reason: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          booking_id?: string | null
+          created_at?: string
+          id?: string
+          reason?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credits_ledger_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -34,6 +107,75 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      trips: {
+        Row: {
+          category: string
+          country: string
+          created_at: string
+          dates: string
+          description: string
+          duration: string
+          highlights: string[]
+          id: string
+          image_key: string
+          itinerary: Json
+          location: string
+          price: number
+          published: boolean
+          slug: string
+          spots_left: number
+          status: string
+          title: string
+          total_spots: number
+          trending: boolean
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          country: string
+          created_at?: string
+          dates: string
+          description?: string
+          duration: string
+          highlights?: string[]
+          id?: string
+          image_key: string
+          itinerary?: Json
+          location: string
+          price: number
+          published?: boolean
+          slug: string
+          spots_left: number
+          status?: string
+          title: string
+          total_spots: number
+          trending?: boolean
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          country?: string
+          created_at?: string
+          dates?: string
+          description?: string
+          duration?: string
+          highlights?: string[]
+          id?: string
+          image_key?: string
+          itinerary?: Json
+          location?: string
+          price?: number
+          published?: boolean
+          slug?: string
+          spots_left?: number
+          status?: string
+          title?: string
+          total_spots?: number
+          trending?: boolean
           updated_at?: string
         }
         Relationships: []
@@ -64,6 +206,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      book_trip: {
+        Args: { _spots?: number; _trip_id: string }
+        Returns: string
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
